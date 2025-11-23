@@ -5,7 +5,7 @@ pipeline {
         DOCKER_REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "shoe-backend"
         FRONTEND_IMAGE = "shoe-frontend"
-        SERVER_HOST = "16.176.145.85"  
+        SERVER_HOST = "52.64.231.178"  
         
         SERVER_USER = "ubuntu"
         PROJECT_DIR = "/home/ubuntu/project"
