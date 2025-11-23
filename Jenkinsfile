@@ -67,7 +67,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
-                    usernamePassword(credentialsId: 'mysql-cred', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
+                    usernamePassword(credentialsId: 'mongodb-uri', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
                 ]) {
                     sshagent(credentials: ['server-ssh-key']) {
 
