@@ -1,33 +1,35 @@
-# Stage 1: Build React app
-FROM node:18-alpine AS builder
+# Stage 1: Build React (CRACO)
+FROM node:20-alpine AS builder
+# ⚠ react-router@7 yêu cầu Node >= 20 → phải dùng node:20
+
 WORKDIR /app
 
-# Copy package.json và package-lock.json
+# Copy dependency files
 COPY package*.json ./
 
-# Cài dependencies
+# Cài thư viện
 RUN npm ci
 
 # Copy toàn bộ source
 COPY . .
 
-# Build ra thư mục build/
+# Build dự án React ra thư mục build/
 RUN npm run build
 
 
-# Stage 2: Dùng Node để serve build (không dùng nginx)
-FROM node:18-alpine
+# Stage 2: Serve static bằng Node (không dùng nginx)
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Cài công cụ serve để chạy static web
+# Cài package serve để chạy build React
 RUN npm install -g serve
 
 # Copy thư mục build từ stage builder
 COPY --from=builder /app/build ./build
 
-# Expose port
+# Expose port server chạy
 EXPOSE 3000
 
-# Chạy React build bằng serve
+# Lệnh chạy FE
 CMD ["serve", "-s", "build", "-l", "3000"]
