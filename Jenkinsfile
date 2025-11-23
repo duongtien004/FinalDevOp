@@ -5,13 +5,14 @@ pipeline {
         DOCKER_REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "shoe-backend"
         FRONTEND_IMAGE = "shoe-frontend"
-        SERVER_HOST = "52.64.231.178"  
+        SERVER_HOST = "52.64.231.178"
         
         SERVER_USER = "ubuntu"
         PROJECT_DIR = "/home/ubuntu/project"
     }
 
     stages {
+
         stage('Checkout Source') {
             steps {
                 echo "Fetching source code..."
@@ -27,7 +28,7 @@ pipeline {
 
         stage('Build & Push Backend (.NET 8)') {
             steps {
-                dir('backend') {
+                dir('Shoe_stores') {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                         echo "Building .NET backend image..."
@@ -46,7 +47,7 @@ pipeline {
 
         stage('Build & Push Frontend (Vite)') {
             steps {
-                dir('frontend') {
+                dir('shoe-store-frontend') {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                         echo "Building Vite frontend image..."
@@ -67,7 +68,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
-                    usernamePassword(credentialsId: 'mongodb-uri', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
+                    usernamePassword(credentialsId: 'mysql-cred', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
                 ]) {
                     sshagent(credentials: ['server-ssh-key']) {
 

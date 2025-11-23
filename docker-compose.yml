@@ -24,12 +24,12 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./Shoe_stores
       dockerfile: Dockerfile
     container_name: shoe-backend
     restart: always
     env_file:
-      - ./backend/.env
+      - ./Shoe_stores/.env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8088
@@ -47,7 +47,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./shoe-store-frontend
       dockerfile: Dockerfile
     container_name: shoe-frontend
     restart: always
