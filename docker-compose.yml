@@ -23,9 +23,7 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ./Shoe_stores
-      dockerfile: Dockerfile
+    image: maiduongtien004/shoe-backend:latest
     container_name: shoe-backend
     restart: always
     env_file:
@@ -46,9 +44,7 @@ services:
       - app-network
 
   frontend:
-    build:
-      context: ./shoe-store-frontend
-      dockerfile: Dockerfile
+    image: maiduongtien004/shoe-frontend:latest
     container_name: shoe-frontend
     restart: always
     environment:

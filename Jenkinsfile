@@ -5,8 +5,8 @@ pipeline {
         DOCKER_REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "shoe-backend"
         FRONTEND_IMAGE = "shoe-frontend"
+
         SERVER_HOST = "52.64.231.178"
-        
         SERVER_USER = "ubuntu"
         PROJECT_DIR = "/home/ubuntu/project"
     }
@@ -76,39 +76,24 @@ pipeline {
                         echo "Copying docker-compose.yml to server..."
                         scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$PROJECT_DIR/docker-compose.yml
 
-                        echo "Deploying to $SERVER_HOST..."
-
-                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << EOF
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
                         set -e
-                        cd $PROJECT_DIR
-
-                        # Create .env
-                        cat > .env << ENV
-DOCKER_USER=$DOCKER_USER
-DOCKER_PASS=$DOCKER_PASS
-MYSQL_USER=$MYSQL_USER
-MYSQL_PASSWORD=$MYSQL_PASS
-MYSQL_DATABASE=shoe_stores
-MYSQL_HOST=mysql
-ASPNETCORE_ENVIRONMENT=Production
-ENV
-
-                        chmod 600 .env
+                        cd '''"$PROJECT_DIR"'''
 
                         echo "Logging into DockerHub..."
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        echo "Pulling new images..."
-                        docker compose --env-file .env pull
+                        echo "Pulling latest images..."
+                        docker compose pull
 
                         echo "Restarting services..."
-                        docker compose --env-file .env down || true
-                        docker compose --env-file .env up -d
+                        docker compose down
+                        docker compose up -d
 
-                        echo "Cleaning old images..."
+                        echo "Cleanup unused images..."
                         docker image prune -f
 
-                        echo "Deployment finished!"
+                        echo "Deployment completed."
 EOF
                         '''
                     }
@@ -119,10 +104,10 @@ EOF
 
     post {
         success {
-            echo "🚀 DEPLOY THÀNH CÔNG! Website chạy tại: http://${SERVER_HOST}:3000"
+            echo "🚀 Deploy thành công! Website chạy tại: http://${SERVER_HOST}:3000"
         }
         failure {
-            echo "❌ DEPLOY FAILED – Kiểm tra log Jenkins!"
+            echo "❌ Deploy FAILED – Kiểm tra log Jenkins!"
         }
         always {
             cleanWs()
