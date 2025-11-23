@@ -18,7 +18,7 @@ pipeline {
                 checkout([$class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/duongtien004/DevOps-Exercise.git',
+                        url: 'https://github.com/duongtien004/FinalDevOp.git',
                         credentialsId: 'github-pat'
                     ]]
                 ])
