@@ -1,0 +1,8 @@
+/* app.css */
+.app-container {
+  @apply flex flex-col min-h-screen bg-gray-50;
+}
+
+main {
+  @apply flex-grow;
+}

@@ -1,0 +1,27 @@
+# Stage 1: Restore & Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy toàn bộ source code
+COPY . .
+
+# Build release và publish ra thư mục /app/publish
+RUN dotnet publish -c Release -o /app/publish
+
+# Stage 2: Runtime (nhỏ gọn)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+# Copy kết quả build từ stage build
+COPY --from=build /app/publish .
+
+# Cấu hình runtime
+ENV ASPNETCORE_URLS=http://+:8088
+EXPOSE 8088
+
+# Start API
+ENTRYPOINT ["dotnet", "Shoe_store.dll"]

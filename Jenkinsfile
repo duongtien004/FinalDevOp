@@ -1,0 +1,130 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = "docker.io/${DOCKER_USERNAME}"
+        BACKEND_IMAGE = "shoe-backend"
+        FRONTEND_IMAGE = "shoe-frontend"
+        SERVER_HOST = "16.176.145.85"  
+        
+        SERVER_USER = "ubuntu"
+        PROJECT_DIR = "/home/ubuntu/project"
+    }
+
+    stages {
+        stage('Checkout Source') {
+            steps {
+                echo "Fetching source code..."
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/duongtien004/DevOps-Exercise.git',
+                        credentialsId: 'github-pat'
+                    ]]
+                ])
+            }
+        }
+
+        stage('Build & Push Backend (.NET 8)') {
+            steps {
+                dir('backend') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        echo "Building .NET backend image..."
+                        docker build -t $DOCKER_USER/shoe-backend:latest .
+
+                        echo "Logging into DockerHub..."
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                        echo "Pushing backend image..."
+                        docker push $DOCKER_USER/shoe-backend:latest
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build & Push Frontend (Vite)') {
+            steps {
+                dir('frontend') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        echo "Building Vite frontend image..."
+                        docker build -t $DOCKER_USER/shoe-frontend:latest .
+
+                        echo "Logging into DockerHub..."
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                        echo "Pushing frontend image..."
+                        docker push $DOCKER_USER/shoe-frontend:latest
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Production Server') {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
+                    usernamePassword(credentialsId: 'mysql-cred', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
+                ]) {
+                    sshagent(credentials: ['server-ssh-key']) {
+
+                        sh '''
+                        echo "Copying docker-compose.yml to server..."
+                        scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$PROJECT_DIR/docker-compose.yml
+
+                        echo "Deploying to $SERVER_HOST..."
+
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << EOF
+                        set -e
+                        cd $PROJECT_DIR
+
+                        # Create .env
+                        cat > .env << ENV
+DOCKER_USER=$DOCKER_USER
+DOCKER_PASS=$DOCKER_PASS
+MYSQL_USER=$MYSQL_USER
+MYSQL_PASSWORD=$MYSQL_PASS
+MYSQL_DATABASE=shoe_stores
+MYSQL_HOST=mysql
+ASPNETCORE_ENVIRONMENT=Production
+ENV
+
+                        chmod 600 .env
+
+                        echo "Logging into DockerHub..."
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                        echo "Pulling new images..."
+                        docker compose --env-file .env pull
+
+                        echo "Restarting services..."
+                        docker compose --env-file .env down || true
+                        docker compose --env-file .env up -d
+
+                        echo "Cleaning old images..."
+                        docker image prune -f
+
+                        echo "Deployment finished!"
+EOF
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 DEPLOY THÀNH CÔNG! Website chạy tại: http://${SERVER_HOST}:3000"
+        }
+        failure {
+            echo "❌ DEPLOY FAILED – Kiểm tra log Jenkins!"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

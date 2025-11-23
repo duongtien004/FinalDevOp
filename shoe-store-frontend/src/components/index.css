@@ -1,0 +1,249 @@
+/* Top bar */
+.top-bar {
+  background: #f5f5f5;
+  color: #555;
+  font-size: 14px;
+  padding: 4px 20px;
+}
+
+/* Header container */
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 12px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #222;
+  font-size: 22px;
+  font-weight: bold;
+}
+.logo img {
+  height: 40px;
+  margin-right: 8px;
+}
+
+/* Navigation */
+.nav-menu {
+  display: flex;
+  gap: 28px;
+  font-weight: 600;
+}
+.nav-menu a {
+  text-decoration: none;
+  color: #333;
+  font-size: 15px;
+  transition: color 0.3s, border-bottom 0.3s;
+}
+.nav-menu a:hover {
+  color: #1e3a8a;
+  border-bottom: 2px solid #1e3a8a;
+}
+
+/* Right section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Search */
+.search-input {
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.search-input:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 4px rgba(30, 58, 138, 0.3);
+}
+
+/* Auth links */
+.auth-links {
+  font-size: 14px;
+  color: #444;
+}
+.auth-links a {
+  text-decoration: none;
+  color: #444;
+  margin: 0 4px;
+  transition: color 0.3s;
+}
+.auth-links a:hover {
+  color: #1e3a8a;
+}
+
+/* Cart */
+.cart-icon {
+  position: relative;
+  color: #dc2626;
+  font-size: 22px;
+  text-decoration: none;
+}
+.cart-count {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  background: #dc2626;
+  color: white;
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 50%;
+}
+
+/* Mobile */
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #444;
+  cursor: pointer;
+}
+@media (max-width: 1024px) {
+  .nav-menu {
+    display: none;
+  }
+  .menu-btn {
+    display: block;
+  }
+}
+/* Auth buttons modern */
+.auth-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-auth {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+/* Login button */
+.btn-auth.login {
+  background: #1e3a8a;
+  color: #fff;
+}
+.btn-auth.login:hover {
+  background: #162c63;
+}
+
+/* Register button */
+.btn-auth.register {
+  background: #fff;
+  color: #1e3a8a;
+  border: 1px solid #1e3a8a;
+}
+.btn-auth.register:hover {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+/* Logout button */
+.btn-auth.logout {
+  background: #dc2626;
+  color: #fff;
+}
+.btn-auth.logout:hover {
+  background: #b91c1c;
+}
+
+
+
+
+
+
+.footer {
+  background: #f9f9f9;
+  color: #333;
+  padding: 40px 20px 20px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.footer-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.footer-col h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #222;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-col ul li {
+  margin-bottom: 10px;
+}
+
+.footer-col ul li a {
+  text-decoration: none;
+  color: #666;
+  transition: 0.3s;
+}
+
+.footer-col ul li a:hover {
+  color: #007bff;
+}
+
+.footer-logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.footer-desc {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.socials {
+  margin-top: 10px;
+}
+
+.socials a {
+  margin-right: 12px;
+  font-size: 18px;
+  color: #555;
+  transition: 0.3s;
+}
+
+.socials a:hover {
+  color: #007bff;
+}
+
+.footer-bottom {
+  text-align: center;
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+  font-size: 14px;
+  color: #777;
+}
+
