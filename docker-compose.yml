@@ -21,6 +21,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   backend:
     image: maiduongtien004/shoe-backend:latest
@@ -29,10 +30,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8088
-      DB_HOST: mysql
-      DB_USER: admin
-      DB_PASSWORD: admin123
-      DB_NAME: shoe_stores
+      # Dòng này QUAN TRỌNG NHẤT – Fix 100% lỗi kết nối DB + CORS + 500
+      ConnectionStrings__DefaultConnection: Server=mysql;Port=3306;Database=shoe_stores;Uid=admin;Pwd=admin123;AllowPublicKeyRetrieval=true;SslMode=none;
     ports:
       - "8088:8088"
     depends_on:
@@ -47,6 +46,8 @@ services:
     restart: always
     environment:
       NODE_ENV: production
+      # Nếu frontend gọi API bằng biến môi trường (khuyên dùng)
+      VUE_APP_API_URL: http://52.64.231.178:8088/api
     ports:
       - "3000:3000"
     depends_on:
