@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShoeStoreBackend.Data;
-using ShoeStoreBackend.Models;
 using ShoeStoreBackend.Services;
 using ShoeStoreBackend.Services.Implementations;
 using ShoeStoreBackend.Services.Interfaces;
@@ -51,9 +50,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://52.64.231.178:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+            "http://localhost:3000",
+            "http://52.64.231.178:3000"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
@@ -141,9 +144,13 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
+
+// ⚠️ CORS phải nằm TRƯỚC Authentication/Authorization
 app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
