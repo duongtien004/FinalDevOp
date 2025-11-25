@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getToken } from './authService';
 
-const API_BASE_URL = 'http://backend:8088/api/orders';
+const API_BASE_URL = 'http://52.64.231.178:8088/api/orders';
 
 export async function placeOrder(orderData) {
   const token = getToken();
