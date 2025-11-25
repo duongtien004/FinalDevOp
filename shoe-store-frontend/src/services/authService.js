@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5172/api/auth";
+const API_BASE_URL = "http://backend:8088/api/auth";
 
 // Lưu token vào localStorage
 export function setToken(token) {

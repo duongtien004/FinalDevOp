@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getToken } from "./authService"; // Hàm lấy token lưu ở localStorage
 
-const API_BASE_URL = "http://localhost:5172/api/user";
+const API_BASE_URL = "http://backend:8088/api/user";
 
 export async function getAllUsers() {
   const token = getToken();

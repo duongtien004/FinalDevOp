@@ -2,7 +2,7 @@
 import axios from "axios";
 import { getToken } from "./authService";
 
-const API_BASE_URL = "http://localhost:5172/api/cart";
+const API_BASE_URL = "http://backend:8088/api/cart";
 
 // Lấy giỏ hàng
 export async function getCart() {

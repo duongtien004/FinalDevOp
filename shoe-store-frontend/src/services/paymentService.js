@@ -8,7 +8,7 @@ export async function getClientSecret(paymentMethod, totalAmount, orderItems, sh
   try {
     const token = getToken();
     const response = await axios.post(
-      'http://localhost:5172/api/orders',
+      'http://backend:8088/api/orders',
       {
         paymentMethod,
         totalAmount,

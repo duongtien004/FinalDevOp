@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getToken } from "./authService";
 
-const API_URL = "http://localhost:5172/api/comments";
+const API_URL = "http://backend:8088/api/comments";
 
 // Lấy danh sách comment theo productId
 export const getComments = async (productId) => {

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5172/api/products";
+const API_BASE_URL = "http://backend:8088/api/products";
 
 // Lấy danh sách sản phẩm (có thể tìm kiếm)
 export async function getProducts(search) {
