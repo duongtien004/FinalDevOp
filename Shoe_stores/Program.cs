@@ -36,27 +36,34 @@ builder.Services.AddAuthentication("Bearer")
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
         };
+
+        // ⚠️ Cho phép HTTP (không bắt buộc HTTPS)
+        options.RequireHttpsMetadata = false;
     });
 
 builder.Services.AddAuthorization();
 
-// ========= CORS (for frontend requests) =========
+// ========= CORS FIX =========
+// Cho phép FE gọi API từ cả localhost và IP server
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:3000",
-            "http://52.64.231.178:3000"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "http://52.64.231.178:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+            // ⚠️ Không dùng AllowCredentials trừ khi bạn dùng cookie
     });
 });
 
@@ -65,14 +72,16 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ShoeStore API", Version = "v1" });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header. Example: 'Bearer {token}'",
+        Description = "JWT Authorization header using Bearer scheme.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -87,7 +96,6 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddControllers();
 
-
 var app = builder.Build();
 
 // ========= SEED DATABASE =========
@@ -97,55 +105,38 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await DbInitializer.InitializeAsync(db);
-        Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("✅ Seeding cơ sở dữ liệu thành công!");
-        Console.ResetColor();
     }
     catch (Exception ex)
     {
-        Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("❌ Lỗi khi seeding cơ sở dữ liệu: " + ex.Message);
-        Console.ResetColor();
     }
 }
 
-// ========= TEST KẾT NỐI MYSQL =========
+// ========= TEST MYSQL =========
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
         if (await db.Database.CanConnectAsync())
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("✅ Kết nối MySQL thành công!");
-            Console.ResetColor();
-        }
         else
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("⚠️ Không thể kết nối tới MySQL.");
-            Console.ResetColor();
-        }
+            Console.WriteLine("⚠️ Không thể kết nối MySQL!");
     }
     catch (Exception ex)
     {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("❌ Lỗi kết nối MySQL: " + ex.Message);
-        Console.ResetColor();
+        Console.WriteLine("❌ MySQL Error: " + ex.Message);
     }
 }
 
 // ========= MIDDLEWARE =========
 app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShoeStore API V1");
-});
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-// ⚠️ CORS phải nằm TRƯỚC Authentication/Authorization
+// ⚠️ CORS phải ở trước Auth
 app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
