@@ -49,9 +49,9 @@ builder.Services.AddAuthorization();
 // ========= CORS (for frontend requests) =========
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("http://52.64.231.178:3000")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
