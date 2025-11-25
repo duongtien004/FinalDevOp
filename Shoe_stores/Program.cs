@@ -11,8 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ========= DATABASE =========
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 25))));
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 25))
+    ));
 
 // ========= DEPENDENCY INJECTION =========
 builder.Services.AddScoped<TokenService>();
@@ -30,44 +32,44 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
+        var jwtKey = builder.Configuration["Jwt:Key"];
+        if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 16)
+            throw new InvalidOperationException("JWT Key must be at least 16 characters!");
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-            )
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
 
-        // ⚠️ Cho phép HTTP (không bắt buộc HTTPS)
-        options.RequireHttpsMetadata = false;
+        // Cho phép HTTP trong dev, production nên bật HTTPS
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     });
 
 builder.Services.AddAuthorization();
 
-// ========= CORS FIX =========
-// Cho phép FE gọi API từ cả localhost và IP server
+// ========= CORS - Cho phép React Frontend =========
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy
-            .WithOrigins(
-                "http://localhost:3000",
-                "http://52.64.231.178:3000"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-            // ⚠️ Không dùng AllowCredentials trừ khi bạn dùng cookie
+        policy.WithOrigins(
+                    "http://localhost:3000",
+                    "http://52.64.231.178:3000",
+                    "https://yourdomain.com" // thêm khi deploy thật
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+                // .AllowCredentials(); // chỉ dùng khi cần cookie/session
     });
 });
 
-// ========= SWAGGER CONFIG =========
+// ========= SWAGGER =========
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -75,7 +77,7 @@ builder.Services.AddSwaggerGen(c =>
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using Bearer scheme.",
+        Description = "JWT Authorization header using Bearer scheme. Example: \"Bearer {token}\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -87,9 +89,13 @@ builder.Services.AddSwaggerGen(c =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
@@ -105,43 +111,36 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await DbInitializer.InitializeAsync(db);
-        Console.WriteLine("✅ Seeding cơ sở dữ liệu thành công!");
+        Console.WriteLine("Seeding cơ sở dữ liệu thành công!");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("❌ Lỗi khi seeding cơ sở dữ liệu: " + ex.Message);
+        Console.WriteLine($"Lỗi khi seeding: {ex.Message}");
     }
 }
 
-// ========= TEST MYSQL =========
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        if (await db.Database.CanConnectAsync())
-            Console.WriteLine("✅ Kết nối MySQL thành công!");
-        else
-            Console.WriteLine("⚠️ Không thể kết nối MySQL!");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("❌ MySQL Error: " + ex.Message);
-    }
-}
-
-// ========= MIDDLEWARE =========
+// ========= MIDDLEWARE - THỨ TỰ RẤT QUAN TRỌNG =========
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShoeStore API V1");
+    c.RoutePrefix = string.Empty; // Swagger tại root: https://yourserver/
+});
 
-app.UseHttpsRedirection();
-
-// ⚠️ CORS phải ở trước Auth
+// CORS phải đứng TRƯỚC mọi thứ (trước cả HttpsRedirection)
 app.UseCors("AllowReactApp");
+
+// Chỉ bật HTTPS Redirection khi không phải Development
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+// Trong dev: cho phép HTTP hoàn toàn → không bị redirect → CORS hoạt động
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
+// ========= START APP =========
 app.Run();
