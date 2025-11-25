@@ -1,8 +1,8 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShoeStoreBackend.Data;
-using ShoeStoreBackend.Models;
 using ShoeStoreBackend.Services;
 using ShoeStoreBackend.Services.Implementations;
 using ShoeStoreBackend.Services.Interfaces;
@@ -10,10 +10,27 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ===== Configuration helpers =====
+// Allow configuration from environment variables (already available via builder.Configuration)
+var configuration = builder.Configuration;
+var env = builder.Environment;
+
+// Read CORS settings from env or config
+// If ALLOW_ALL_CORS=true -> allow any origin (useful for development)
+// Otherwise, if ALLOWED_ORIGINS is set (semicolon-separated), we'll allow those origins
+var allowAllCors = configuration.GetValue<bool?>("ALLOW_ALL_CORS") ?? false;
+var allowedOriginsRaw = configuration.GetValue<string?>("ALLOWED_ORIGINS") ?? configuration.GetValue<string?>("AllowedOrigins");
+
+string corsPolicyName = "DefaultCorsPolicy";
+
 // ========= DATABASE =========
 builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    // You can switch to AutoDetect if using different MySQL providers:
+    // options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"), ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection")));
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 25))));
+        new MySqlServerVersion(new Version(8, 0, 25)));
+});
 
 // ========= DEPENDENCY INJECTION =========
 builder.Services.AddScoped<TokenService>();
@@ -37,24 +54,55 @@ builder.Services.AddAuthentication("Bearer")
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = configuration["Jwt:Issuer"],
+            ValidAudience = configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                Encoding.UTF8.GetBytes(configuration["Jwt:Key"] ?? string.Empty))
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ========= CORS (for frontend requests) =========
+// ========= CORS =========
+// Provide two modes:
+// - Development / quick test: set ALLOW_ALL_CORS=true (this will AllowAnyOrigin/AnyHeader/AnyMethod)
+// - Safer: set ALLOWED_ORIGINS (semicolon separated) or configure AllowedOrigins in appsettings
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp", policy =>
+    if (allowAllCors)
     {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+    }
+    else if (!string.IsNullOrWhiteSpace(allowedOriginsRaw))
+    {
+        var origins = allowedOriginsRaw.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                       .Select(o => o.Trim())
+                                       .ToArray();
+
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            policy.WithOrigins(origins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+            // If you need cookies/credentials, call .AllowCredentials() here,
+            // but then you MUST use explicit origins (not AllowAnyOrigin).
+        });
+    }
+    else
+    {
+        // Default to allowing localhost:3000 for convenience if nothing provided
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            policy.WithOrigins("http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+    }
 });
 
 // ========= SWAGGER CONFIG =========
@@ -84,8 +132,15 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddControllers();
 
-
 var app = builder.Build();
+
+// ===== Forwarded headers (for proxy / load balancers) =====
+// This helps app know original scheme (http/https) and client IP when behind proxy.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    // If you need to restrict known proxies, set KnownProxies or KnownNetworks here
+});
 
 // ========= SEED DATABASE =========
 using (var scope = app.Services.CreateScope())
@@ -134,16 +189,39 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ========= MIDDLEWARE =========
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Show Swagger in Development by default; if you want in Production, enable via config or env var
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShoeStore API V1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShoeStore API V1");
+    });
+}
+else
+{
+    // If you want Swagger in production (not recommended for public APIs), enable via config:
+    var swaggerEnabled = configuration.GetValue<bool?>("EnableSwaggerInProduction") ?? false;
+    if (swaggerEnabled)
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShoeStore API V1");
+        });
+    }
+}
 
+// If behind a reverse proxy that terminates TLS, you might want to disable HTTPS redirection here.
+// Keep it enabled for production where app should force HTTPS.
 app.UseHttpsRedirection();
-app.UseCors("AllowReactApp");
+
+// IMPORTANT: CORS must be used BEFORE Authentication/Authorization if the preflight requests need to be handled.
+app.UseCors(corsPolicyName);
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
