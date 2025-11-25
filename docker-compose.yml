@@ -26,8 +26,6 @@ services:
     image: maiduongtien004/shoe-backend:latest
     container_name: shoe-backend
     restart: always
-    env_file:
-      - ./Shoe_stores/.env
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8088

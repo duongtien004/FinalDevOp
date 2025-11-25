@@ -6,7 +6,6 @@ pipeline {
         BACKEND_IMAGE = "shoe-backend"
         FRONTEND_IMAGE = "shoe-frontend"
         SERVER_HOST = "52.64.231.178"
-        
         SERVER_USER = "ubuntu"
         PROJECT_DIR = "/home/ubuntu/project"
     }
@@ -31,14 +30,14 @@ pipeline {
                 dir('Shoe_stores') {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                        echo "Building .NET backend image..."
-                        docker build -t $DOCKER_USER/shoe-backend:latest .
+                            echo "Building .NET backend image..."
+                            docker build -t $DOCKER_USER/shoe-backend:latest .
 
-                        echo "Logging into DockerHub..."
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            echo "Logging into DockerHub..."
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        echo "Pushing backend image..."
-                        docker push $DOCKER_USER/shoe-backend:latest
+                            echo "Pushing backend image..."
+                            docker push $DOCKER_USER/shoe-backend:latest
                         '''
                     }
                 }
@@ -50,14 +49,14 @@ pipeline {
                 dir('shoe-store-frontend') {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                        echo "Building Vite frontend image..."
-                        docker build -t $DOCKER_USER/shoe-frontend:latest .
+                            echo "Building Vite frontend image..."
+                            docker build -t $DOCKER_USER/shoe-frontend:latest .
 
-                        echo "Logging into DockerHub..."
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            echo "Logging into DockerHub..."
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        echo "Pushing frontend image..."
-                        docker push $DOCKER_USER/shoe-frontend:latest
+                            echo "Pushing frontend image..."
+                            docker push $DOCKER_USER/shoe-frontend:latest
                         '''
                     }
                 }
@@ -67,8 +66,7 @@ pipeline {
         stage('Deploy to Production Server') {
             steps {
                 withCredentials([
-                    usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
-                    usernamePassword(credentialsId: 'mysql-cred', usernameVariable: 'MYSQL_USER', passwordVariable: 'MYSQL_PASS')
+                    usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
                 ]) {
                     sshagent(credentials: ['server-ssh-key']) {
 
@@ -82,30 +80,17 @@ pipeline {
                         set -e
                         cd $PROJECT_DIR
 
-                        # Create .env
-                        cat > .env << ENV
-DOCKER_USER=$DOCKER_USER
-DOCKER_PASS=$DOCKER_PASS
-MYSQL_USER=$MYSQL_USER
-MYSQL_PASSWORD=$MYSQL_PASS
-MYSQL_DATABASE=shoe_stores
-MYSQL_HOST=mysql
-ASPNETCORE_ENVIRONMENT=Production
-ENV
-
-                        chmod 600 .env
-
                         echo "Logging into DockerHub..."
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
                         echo "Pulling new images..."
-                        docker compose --env-file .env pull
+                        docker compose pull
 
                         echo "Restarting services..."
-                        docker compose --env-file .env down || true
-                        docker compose --env-file .env up -d
+                        docker compose down || true
+                        docker compose up -d
 
-                        echo "Cleaning old images..."
+                        echo "Removing old images..."
                         docker image prune -f
 
                         echo "Deployment finished!"
